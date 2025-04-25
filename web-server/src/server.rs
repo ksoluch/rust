@@ -27,21 +27,35 @@ impl Server {
 				eprintln!("connection failure {:?}", connection);
 				continue;
 			};
-			self.process(stream);
+			std::thread::spawn(move || {
+				let me = std::thread::current().id();
+				println!("new thread {:?}", me);
+				Server::process(stream);
+			});
 		}
 		Ok(())
 	}
 
-	fn process(&self, mut stream: TcpStream) {
+	fn process(mut stream: TcpStream) {
 		let reader = BufReader::new(&stream);
 		let content : Vec<_> = reader
 			.lines()
 			.filter_map(|e| e.ok())
 			.take_while(|e| 0 != e.len())
 			.collect();
-		println!("received: {:?}", content);
-		let response = "HTTP/1.1 200 OK\r\n\r\n";
-		stream.write_all(response.as_bytes()).unwrap();
+		let page;
+		if content.into_iter().next().unwrap() == "GET / HTTP/1.1" {
+			page = Server::generate_page("./data/hello.html", "HTTP/1.1 200 OK");
+		} else {
+			page = Server::generate_page("./data/404.html", "HTTP/1.1 404 NOT FOUND");
+		}
+		stream.write_all(page.as_bytes()).unwrap();
+	}
+
+	fn generate_page(file: &str, status_line: &str) -> String {
+		let contents = std::fs::read_to_string(file).unwrap();
+		let length = contents.len();
+		format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}")
 	}
 
 }
