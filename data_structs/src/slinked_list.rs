@@ -11,7 +11,12 @@ impl<T> SLinkedList<T> {
 		Self { head: None} 
 	}
 	fn insert_back(&mut self, item: T) {
-
+		//Special case when head is None.
+		if self.head.is_none() {
+			self.head = Some(Box::new(Node { next: None, item }));
+			return;
+		}
+		//Find first node that has next as None
 	}
 	fn insert_front(&mut self, item: T) {
 
